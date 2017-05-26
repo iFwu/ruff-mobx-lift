@@ -1,11 +1,10 @@
 import { extendObservable, observable, action, computed } from 'mobx'
-import { TOP_FLOOR, BOTTOM_FLOOR, DirectionTypes, DoorStates } from '../Constants'
+import { TOP_FLOOR, BOTTOM_FLOOR, DirectionTypes } from '../Constants'
 import { isTop, isBottom, getOpposite } from '../Utils'
 
 const { UP, DOWN } = DirectionTypes
 class FloorModel {
   floor
-  @observable floorDoor = DoorStates.CLOSE
   constructor (floor) {
     const tmpObj = {}
     if (isTop(floor)) {

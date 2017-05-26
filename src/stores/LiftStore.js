@@ -1,5 +1,5 @@
 import { observable, action, intercept } from 'mobx'
-import { TOP_FLOOR, BOTTOM_FLOOR, FLOOR_CHANGE_TIME, DirectionTypes, DoorStates } from '../Constants'
+import { TOP_FLOOR, BOTTOM_FLOOR, FLOOR_CHANGE_TIME, DirectionTypes } from '../Constants'
 import { isTop, isBottom } from '../Utils'
 
 class KeyModel {
@@ -39,7 +39,6 @@ class LiftStore {
   @observable keypadState = []
   @observable nextFloor = 1
   @observable goDirection
-  @observable liftDoor = DoorStates.CLOSE
   intervalId
   getKeyModel = (floor) => {
     return this.keypadState[floor - BOTTOM_FLOOR]
