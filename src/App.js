@@ -6,6 +6,9 @@ import InCarView from './view/InCarView'
 import systemState from './stores/'
 
 class App extends Component {
+  // componentDidMount () {
+  //   systemState.liftState.direct('UP')
+  // }
   render () {
     return (
       <div>

@@ -2,12 +2,9 @@ import React, { Component } from 'react'
 import { observer } from 'mobx-react'
 import { DirectionTypes } from '../Constants'
 
-const { UP } = DirectionTypes
+const { UP, DOWN } = DirectionTypes
 @observer
 class FloorView extends Component {
-  componentDidMount () {
-    this.props.store.liftState.direct(UP)
-  }
   render () {
     const {
       diplayedFloorState: {
@@ -101,7 +98,13 @@ class FloorView extends Component {
           <h4>Next Stop On:</h4>
           <span>{floorsToStop.join(' | ')}</span>
           <h4>Current Direction:</h4>
-          <i>{goDirection === UP ? '⇑' : '⇓'}</i>
+          <i>{
+            goDirection === UP
+            ? '⬆️'
+            : (goDirection === DOWN
+              ? '⬇️'
+              : '🛑')
+          }</i>
         </section>
         <section>
           <button onClick={goNextFloor}> ⇥ </button>

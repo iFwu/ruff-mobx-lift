@@ -24,7 +24,15 @@ class SystemStore {
         if (!nextFloorsLen) {
           if (keypadLen || upLen || downLen) {
             this.liftState.direct(getOpposite(this.liftState.goDirection))
+            if (!nextFloorsLen) {
+              this.liftState.direct(null)
+            }
+          } else {
+            this.liftState.direct(null)
           }
+        } else {
+          const difference = this.liftState.nextFloor - this.floorsToStop[0]
+          this.liftState.direct(difference > 0 ? DirectionTypes.DOWN : DirectionTypes.UP)
         }
       },
       { name: 'Lift Direction Changed' }
@@ -55,6 +63,7 @@ class SystemStore {
         case DirectionTypes.DOWN:
           return floor <= this.liftState.nextFloor
         default:
+          return floor
       }
     }
     const inCarQueue = this.liftState.keypadState.filter(key => key.isOn).map(key => key.floor).filter(floor => filterByDirection(floor)).sort((a, b) => {
@@ -68,29 +77,29 @@ class SystemStore {
     })
 
     let floorsQueue
-    const drctCalls = this.floorsState.callQueue[direction]
+    // in case direction is undefined
+    // get both directions
+    const drctCalls = this.floorsState.callQueue[getOpposite(getOpposite(direction))]
     const opstCalls = this.floorsState.callQueue[getOpposite(direction)]
-    if (!drctCalls || !drctCalls.filter(filterByDirection).length) {
-      if (opstCalls && opstCalls.filter(filterByDirection).length) {
-        if (inCarQueue.length) {
-          floorsQueue = opstCalls.filter(i => {
-            switch (direction) {
-              case DirectionTypes.UP: {
-                return i > inCarQueue[inCarQueue.length - 1]
-              }
-              case DirectionTypes.DOWN:
-                return i < inCarQueue[inCarQueue.length - 1]
-              default:
+    if (drctCalls && drctCalls.filter(filterByDirection).length) {
+      floorsQueue = drctCalls && drctCalls.filter(floor => filterByDirection(floor))
+    } else if (opstCalls && opstCalls.filter(filterByDirection).length) {
+      if (inCarQueue.length && direction) {
+        floorsQueue = opstCalls.filter(opstCall => {
+          switch (direction) {
+            case DirectionTypes.UP: {
+              return opstCall > inCarQueue[inCarQueue.length - 1]
             }
-          }).slice(-1)
-        } else {
-          floorsQueue = opstCalls.filter(floor => filterByDirection(floor)).slice(-1)
-        }
+            case DirectionTypes.DOWN:
+              return opstCall < inCarQueue[inCarQueue.length - 1]
+            default:
+          }
+        }).slice(-1)
       } else {
-        floorsQueue = []
+        floorsQueue = opstCalls.filter(floor => filterByDirection(floor)).slice(-1)
       }
     } else {
-      floorsQueue = drctCalls && drctCalls.filter(floor => filterByDirection(floor))
+      floorsQueue = []
     }
 
     const next = inCarQueue.concat(floorsQueue).sort((a, b) => {

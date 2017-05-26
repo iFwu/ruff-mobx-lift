@@ -64,13 +64,6 @@ class FloorButton extends Component {
 
 @observer
 class FloorPanelView extends Component {
-  // componentDidMount () {
-  //   liftState.directUp()
-  //   liftState.runDirecting()
-  // }
-  // componentWillUnmount () {
-  //   liftState.stopDirecting()
-  // }
   render () {
     const { store } = this.props
     return (

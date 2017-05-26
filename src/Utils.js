@@ -17,5 +17,6 @@ export function getOpposite (direction) {
     case DirectionTypes.DOWN:
       return DirectionTypes.UP
     default:
+      return DirectionTypes.UP
   }
 }
