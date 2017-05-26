@@ -45,9 +45,9 @@ class FloorButton extends Component {
             width: 30px;
           }
         `}</style>
-        <span className='before'>{store.liftState.nextFloor === btn.floor && '➠'}</span>
+        <span className='before'>{store.liftState.currFloor === btn.floor && '➠'}</span>
         <button
-          onClick={!btn.isOn && btn.press}
+          onClick={!btn.isOn && store.liftState.currFloor !== btn.floor && btn.press}
           onDoubleClick={btn.isOn && btn.cancel}
           className={btn.isOn && 'on'}
         >
@@ -67,35 +67,32 @@ class FloorPanelView extends Component {
   render () {
     const { store } = this.props
     return (
-      <div>
+      <ol>
         <style jsx>{`
-          div {
-            min-width: 90px;
-          }
           ol {
+            min-width: 90px;
             list-style: none;
             padding: 0;
+            margin: 0;
             display: flex;
             flex-direction: column-reverse;
             justify-content: space-between;
-            margin: 0 auto;
-            width: auto;
           }
           button {
             font-size: 13px;
             height: 23px;
           }
         `}</style>
-        <ol>
-          {
-            store.liftState.keypadState.map(btn => (
-              <FloorButton key={btn.floor} btn={btn} store={store} />
-            ))
-          }
-        </ol>
-        {/*<button>←|→</button>
-        <button>→|←</button>*/}
-      </div>
+        <span>
+          <button onClick={() => store.openDoor()}>←|→</button>
+          <button onClick={() => store.closeDoor()}>→|←</button>
+        </span>
+        {
+          store.liftState.keypadState.map(btn => (
+            <FloorButton key={btn.floor} btn={btn} store={store} />
+          ))
+        }
+      </ol>
     )
   }
 }

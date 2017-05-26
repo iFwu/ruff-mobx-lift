@@ -1,4 +1,4 @@
-import { observable, action, intercept } from 'mobx'
+import { observable, action, intercept, reaction } from 'mobx'
 import { TOP_FLOOR, BOTTOM_FLOOR, FLOOR_CHANGE_TIME, DirectionTypes } from '../Constants'
 import { isTop, isBottom } from '../Utils'
 
@@ -25,7 +25,7 @@ class LiftStore {
     for (let i = BOTTOM_FLOOR; i <= TOP_FLOOR; i++) {
       this.keypadState.push(new KeyModel(i))
     }
-    intercept(this, 'nextFloor', change => {
+    intercept(this, 'currFloor', change => {
       if (
         (isTop(change.newValue - 1) && this.goDirection === DirectionTypes.UP)
         || (isBottom(change.newValue + 1) && this.goDirection === DirectionTypes.DOWN)
@@ -37,7 +37,7 @@ class LiftStore {
     })
   }
   @observable keypadState = []
-  @observable nextFloor = 1
+  @observable currFloor = 1
   @observable goDirection
   intervalId
   getKeyModel = (floor) => {
@@ -47,22 +47,31 @@ class LiftStore {
   @action goNextFloor = () => {
     switch (this.goDirection) {
       case DirectionTypes.UP:
-        return this.nextFloor++
+        return this.currFloor++
       case DirectionTypes.DOWN:
-        return this.nextFloor--
-      default:
+        return this.currFloor--
+      default: {
+        this.stopAutoRun()
+      }
     }
   }
-  @action runDirecting () {
-    this.intervalId = setInterval(() => {
-      this.goNextFloor()
-    }, FLOOR_CHANGE_TIME)
+  @action startAutoRun () {
+    reaction(() => this.goDirection, direction => {
+      if (direction && !this.intervalId) {
+        this.intervalId = setInterval(() => {
+          this.goNextFloor()
+        }, FLOOR_CHANGE_TIME)
+      }
+    })
   }
-  @action stopDirecting () {
-    this.clearDirection()
+  @action stopAutoRun () {
     clearInterval(this.intervalId)
+    this.intervalId = null
   }
   @action direct (direction) {
+    if (direction !== DirectionTypes.UP && direction !== DirectionTypes.DOWN) {
+      throw new Error('Not a Valid Direction')
+    }
     this.goDirection = direction
   }
   @action clearDirection () {

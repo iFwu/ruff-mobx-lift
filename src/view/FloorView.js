@@ -13,7 +13,8 @@ class FloorView extends Component {
       liftState: {
         goNextFloor, goDirection
       },
-      floorsToStop
+      floorsToStop,
+      doorState
     } = this.props.store
     const renderBtn = () => {
       return Object.keys(floorState).map(d => {
@@ -65,7 +66,6 @@ class FloorView extends Component {
       <div className='floor-view'>
         <style jsx>{`
           .floor-view {
-            width: 40vw;
             text-align: center;
             align-items: center;
             display: flex;
@@ -89,12 +89,16 @@ class FloorView extends Component {
             font-size: 20px;
             font-weight: bold;
           }
+          .floor-btn {
+            flex-basis: 100px;
+          }
         `}</style>
         <h2>F{floor}</h2>
-        <section>
+        <section className='floor-btn'>
           {renderBtn()}
         </section>
         <section>
+          <h5>Door is {doorState}</h5>
           <h4>Next Stop On:</h4>
           <span>{floorsToStop.join(' | ')}</span>
           <h4>Current Direction:</h4>

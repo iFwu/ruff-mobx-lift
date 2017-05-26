@@ -1,7 +1,12 @@
 import { TOP_FLOOR, BOTTOM_FLOOR, DirectionTypes } from './Constants'
 
-export function timeout (ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+export function timeout (ms, cancelFn = () => {}) {
+  if (typeof ms !== 'number') {
+    throw new Error('Not A Valid Time')
+  }
+  return new Promise(resolve => {
+    cancelFn(setTimeout(resolve, ms))
+  })
 }
 
 export function isTop (floor) {
@@ -20,3 +25,4 @@ export function getOpposite (direction) {
       return DirectionTypes.UP
   }
 }
+

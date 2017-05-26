@@ -1,8 +1,8 @@
-import { observable, action, computed, reaction } from 'mobx'
+import { observable, action, computed, reaction, runInAction } from 'mobx'
 import FloorsStore from './FloorsStore'
 import LiftStore from './LiftStore'
-import { DirectionTypes } from '../Constants'
-import { getOpposite } from '../Utils'
+import { DirectionTypes, DoorStates, DOOR_TOGGLE_TIME, DOOR_TIMEOUT } from '../Constants'
+import { getOpposite, timeout } from '../Utils'
 
 class SystemStore {
   constructor (liftId) {
@@ -10,7 +10,7 @@ class SystemStore {
     reaction(
       () => this.stopping,
       floor => floor && this.liftArrive(floor, this.liftState.goDirection),
-      { name: 'lift arrived on demand' }
+      { name: 'Lift Arrived on Demand' }
     )
     reaction(
       () => ({
@@ -25,13 +25,13 @@ class SystemStore {
           if (keypadLen || upLen || downLen) {
             this.liftState.direct(getOpposite(this.liftState.goDirection))
             if (!nextFloorsLen) {
-              this.liftState.direct(null)
+              this.liftState.clearDirection()
             }
           } else {
-            this.liftState.direct(null)
+            this.liftState.clearDirection()
           }
         } else {
-          const difference = this.liftState.nextFloor - this.floorsToStop[0]
+          const difference = this.liftState.currFloor - this.floorsToStop[0]
           this.liftState.direct(difference > 0 ? DirectionTypes.DOWN : DirectionTypes.UP)
         }
       },
@@ -41,13 +41,48 @@ class SystemStore {
   liftState = new LiftStore(this.LIFT_ID)
   floorsState = new FloorsStore(this.LIFT_ID)
   @observable displayFloor = 1
+  @observable doorState = DoorStates.CLOSED
+
+  doorTimer
+  @action openDoor = async () => {
+    if (this.doorState === DoorStates.CLOSED) {
+      this.doorState = DoorStates.OPENING
+      await timeout(DOOR_TOGGLE_TIME)
+      runInAction('Door Opened', () => {
+        this.doorState = DoorStates.OPEN
+      })
+    }
+    await timeout(DOOR_TIMEOUT, timer => {
+      if (this.doorTimer) {
+        clearTimeout(this.doorTimer)
+      }
+      this.doorTimer = timer
+    })
+    this.doorTimer = null
+    this.closeDoor(true)
+  }
+  @action closeDoor = (isAuto = false) => {
+    if (this.doorState === DoorStates.OPEN) {
+      this.doorState = DoorStates.CLOSING
+      if (this.doorTimer) {
+        clearTimeout(this.doorTimer)
+      }
+      timeout(DOOR_TOGGLE_TIME).then(() => {
+        runInAction(isAuto ? 'Door Auto Closed' : 'Door Closed', () => {
+          this.doorState = DoorStates.CLOSED
+        })
+      })
+    }
+  }
   @action changeFloorView = (newFloor) => {
     this.displayFloor = newFloor
   }
   @action liftArrive (floor, direction) {
     this.floorsState.getFloorModel(floor).resolve(direction, this.floorsToStop.length === 1)
     this.liftState.getKeyModel(floor).resolve()
+    this.openDoor()
   }
+
   @computed get diplayedFloorState () {
     return this.floorsState.floors[this.displayFloor - 1]
   }
@@ -59,9 +94,9 @@ class SystemStore {
     const filterByDirection = (floor) => {
       switch (direction) {
         case DirectionTypes.UP:
-          return floor >= this.liftState.nextFloor
+          return floor >= this.liftState.currFloor
         case DirectionTypes.DOWN:
-          return floor <= this.liftState.nextFloor
+          return floor <= this.liftState.currFloor
         default:
           return floor
       }
@@ -114,8 +149,8 @@ class SystemStore {
     return [...(new Set(next))]
   }
   @computed get stopping () {
-    if (this.floorsToStop[0] === this.liftState.nextFloor) {
-      return this.liftState.nextFloor
+    if (this.floorsToStop[0] === this.liftState.currFloor) {
+      return this.liftState.currFloor
     } else {
       return false
     }

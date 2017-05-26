@@ -6,9 +6,9 @@ import InCarView from './view/InCarView'
 import systemState from './stores/'
 
 class App extends Component {
-  // componentDidMount () {
-  //   systemState.liftState.direct('UP')
-  // }
+  componentDidMount () {
+    systemState.liftState.startAutoRun()
+  }
   render () {
     return (
       <div>
@@ -18,7 +18,8 @@ class App extends Component {
             .root {
               padding: 30px;
               display: flex;
-              width: 100vw;
+              max-width: 100vw;
+              justify-content: space-between;
             }
           `}</style>
           <FloorTabs store={systemState} />
