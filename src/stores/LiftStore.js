@@ -34,11 +34,8 @@ class LiftStore {
       this.keypadState.push(new KeyModel(i))
     }
     intercept(this, 'currFloor', change => {
-      if (
-        (isTop(change.newValue - 1) && this.goDirection === DirectionTypes.UP)
-        || (isBottom(change.newValue + 1) && this.goDirection === DirectionTypes.DOWN)
-      ) {
-        throw new Error("floor exception: " + change.newValue)
+      if (change.newValue > TOP_FLOOR || change.newValue < BOTTOM_FLOOR) {
+        throw new Error("Floor Exception: " + change.newValue)
       } else {
         return change
       }
@@ -52,8 +49,8 @@ class LiftStore {
     return this.keypadState[floor - BOTTOM_FLOOR]
   }
 
-  @action goNextFloor = async (isForce = false, direction = this.goDirection) => {
-    switch (direction) {
+  @action goNextFloor = async (isForce = false) => {
+    switch (this.goDirection) {
       case DirectionTypes.UP: {
         if (!isForce) {
           await timeout(FLOOR_CHANGE_TIME)
@@ -68,7 +65,9 @@ class LiftStore {
         runInAction('Lift Down a Floor', () => this.currFloor--)
         break
       }
-      default:
+      default: {
+        throw new Error('No Direction. Can Cause Infinite loop')
+      }
     }
   }
   @action direct (direction) {

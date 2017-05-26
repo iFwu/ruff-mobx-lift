@@ -33,8 +33,10 @@ class FloorModel {
     this.floorState[direction] = true
   }
   @action resolve = (direction, isLastToStop) => {
-    this.floorState[direction] = false
-    if (isLastToStop) {
+    if (direction in this.floorState) {
+      this.floorState[direction] = false
+    }
+    if (isLastToStop && getOpposite(direction) in this.floorState) {
       this.floorState[getOpposite(direction)] = false
     }
   }

@@ -58,12 +58,11 @@ class SystemStore {
     return this.floorsState.floors[this.displayFloor - 1]
   }
 
-  intervalId
   @action startAutoRun = () => {
     autorun(async () => {
       while (this.liftState.goDirection && this.liftState.doorState === DoorStates.CLOSED) {
         //eslint-disable-next-line no-await-in-loop
-        await this.liftState.goNextFloor(false, this.liftState.goDirection)
+        await this.liftState.goNextFloor(false)
       }
     })
   }
