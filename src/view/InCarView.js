@@ -63,7 +63,7 @@ class FloorButton extends Component {
 }
 
 @observer
-class FloorPanelView extends Component {
+class InCarView extends Component {
   render () {
     const { store } = this.props
     return (
@@ -84,8 +84,8 @@ class FloorPanelView extends Component {
           }
         `}</style>
         <span>
-          <button onClick={() => store.openDoor()}>←|→</button>
-          <button onClick={() => store.closeDoor()}>→|←</button>
+          <button onClick={() => store.liftState.openDoor()}>←|→</button>
+          <button onClick={() => store.liftState.closeDoor()}>→|←</button>
         </span>
         {
           store.liftState.keypadState.map(btn => (
@@ -97,4 +97,4 @@ class FloorPanelView extends Component {
   }
 }
 
-export default FloorPanelView
+export default InCarView

@@ -1,6 +1,14 @@
-import { observable, action, intercept, reaction } from 'mobx'
-import { TOP_FLOOR, BOTTOM_FLOOR, FLOOR_CHANGE_TIME, DirectionTypes } from '../Constants'
-import { isTop, isBottom } from '../Utils'
+import { observable, action, intercept, runInAction } from 'mobx'
+import {
+  TOP_FLOOR,
+  BOTTOM_FLOOR,
+  FLOOR_CHANGE_TIME,
+  DirectionTypes,
+  DoorStates,
+  DOOR_TOGGLE_TIME,
+  DOOR_TIMEOUT
+} from '../Constants'
+import { isTop, isBottom, timeout } from '../Utils'
 
 class KeyModel {
   constructor (floor) {
@@ -39,34 +47,29 @@ class LiftStore {
   @observable keypadState = []
   @observable currFloor = 1
   @observable goDirection
-  intervalId
+
   getKeyModel = (floor) => {
     return this.keypadState[floor - BOTTOM_FLOOR]
   }
 
-  @action goNextFloor = () => {
-    switch (this.goDirection) {
-      case DirectionTypes.UP:
-        return this.currFloor++
-      case DirectionTypes.DOWN:
-        return this.currFloor--
-      default: {
-        this.stopAutoRun()
+  @action goNextFloor = async (isForce = false, direction = this.goDirection) => {
+    switch (direction) {
+      case DirectionTypes.UP: {
+        if (!isForce) {
+          await timeout(FLOOR_CHANGE_TIME)
+        }
+        runInAction('Lift Up a Floor', () => this.currFloor++)
+        break
       }
+      case DirectionTypes.DOWN: {
+        if (!isForce) {
+          await timeout(FLOOR_CHANGE_TIME)
+        }
+        runInAction('Lift Down a Floor', () => this.currFloor--)
+        break
+      }
+      default:
     }
-  }
-  @action startAutoRun () {
-    reaction(() => this.goDirection, direction => {
-      if (direction && !this.intervalId) {
-        this.intervalId = setInterval(() => {
-          this.goNextFloor()
-        }, FLOOR_CHANGE_TIME)
-      }
-    })
-  }
-  @action stopAutoRun () {
-    clearInterval(this.intervalId)
-    this.intervalId = null
   }
   @action direct (direction) {
     if (direction !== DirectionTypes.UP && direction !== DirectionTypes.DOWN) {
@@ -76,6 +79,40 @@ class LiftStore {
   }
   @action clearDirection () {
     this.goDirection = null
+  }
+
+  @observable doorState = DoorStates.CLOSED
+
+  doorTimer
+  @action openDoor = async () => {
+    if (this.doorState === DoorStates.CLOSED) {
+      this.doorState = DoorStates.OPENING
+      await timeout(DOOR_TOGGLE_TIME)
+      runInAction('Door Opened', () => {
+        this.doorState = DoorStates.OPEN
+      })
+    }
+    await timeout(DOOR_TIMEOUT, timer => {
+      if (this.doorTimer) {
+        clearTimeout(this.doorTimer)
+      }
+      this.doorTimer = timer
+    })
+    this.doorTimer = null
+    this.closeDoor(true)
+  }
+  @action closeDoor = (isAuto = false) => {
+    if (this.doorState === DoorStates.OPEN) {
+      this.doorState = DoorStates.CLOSING
+      if (this.doorTimer) {
+        clearTimeout(this.doorTimer)
+      }
+      timeout(DOOR_TOGGLE_TIME).then(() => {
+        runInAction(isAuto ? 'Door Auto Closed' : 'Door Closed', () => {
+          this.doorState = DoorStates.CLOSED
+        })
+      })
+    }
   }
 }
 

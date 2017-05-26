@@ -7,7 +7,7 @@ import systemState from './stores/'
 
 class App extends Component {
   componentDidMount () {
-    systemState.liftState.startAutoRun()
+    systemState.startAutoRun()
   }
   render () {
     return (

@@ -11,10 +11,9 @@ class FloorView extends Component {
         floorState, floor, press, reset
       },
       liftState: {
-        goNextFloor, goDirection
+        goNextFloor, goDirection, doorState
       },
-      floorsToStop,
-      doorState
+      floorsToStop
     } = this.props.store
     const renderBtn = () => {
       return Object.keys(floorState).map(d => {
@@ -92,6 +91,11 @@ class FloorView extends Component {
           .floor-btn {
             flex-basis: 100px;
           }
+          .queue {
+            display: inline-block;
+            white-space: nowrap;
+            height: 25px;
+          }
         `}</style>
         <h2>F{floor}</h2>
         <section className='floor-btn'>
@@ -100,7 +104,7 @@ class FloorView extends Component {
         <section>
           <h5>Door is {doorState}</h5>
           <h4>Next Stop On:</h4>
-          <span>{floorsToStop.join(' | ')}</span>
+          <span className='queue'>{floorsToStop.join(' | ')}</span>
           <h4>Current Direction:</h4>
           <i>{
             goDirection === UP
@@ -111,7 +115,7 @@ class FloorView extends Component {
           }</i>
         </section>
         <section>
-          <button onClick={goNextFloor}> ⇥ </button>
+          <button onClick={() => goNextFloor(true)}> ⇥ </button>
           <button type='reset' onClick={reset}> ↻ </button>
         </section>
       </div>
