@@ -73,8 +73,12 @@ class LiftStore {
   @action direct (direction) {
     if (direction !== DirectionTypes.UP && direction !== DirectionTypes.DOWN) {
       throw new Error('Not a Valid Direction')
+    } else if (this.doorState === DoorStates.CLOSED) {
+      this.goDirection = direction
+    } else {
+      //eslint-disable-next-line no-console
+      console.info('Door Not Closed, Ignore Direction Change')
     }
-    this.goDirection = direction
   }
   @action clearDirection () {
     this.goDirection = null

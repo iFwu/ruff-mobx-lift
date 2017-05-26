@@ -21,24 +21,19 @@ class SystemStore {
         doorState: this.liftState.doorState
       }),
       lens => {
-        const { nextFloorsLen, keypadLen, upLen, downLen, doorState } = lens
+        const { nextFloorsLen, keypadLen, upLen, downLen } = lens
         if (!nextFloorsLen) {
           if (keypadLen || upLen || downLen) {
             this.liftState.direct(getOpposite(this.liftState.goDirection))
-            if (!nextFloorsLen) {
-              this.liftState.clearDirection()
-            }
           } else {
             this.liftState.clearDirection()
           }
         } else {
           const difference = this.liftState.currFloor - this.floorsToStop[0]
-          if (doorState === DoorStates.CLOSED) {
-            this.liftState.direct(difference > 0 ? DirectionTypes.DOWN : DirectionTypes.UP)
-          }
+          this.liftState.direct(difference > 0 ? DirectionTypes.DOWN : DirectionTypes.UP)
         }
       },
-      { name: 'Lift Direction Changed' }
+      { name: 'Lift Directing' }
     )
   }
   liftState = new LiftStore(this.LIFT_ID)
