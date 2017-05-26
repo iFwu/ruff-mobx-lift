@@ -8,7 +8,7 @@ import {
   DOOR_TOGGLE_TIME,
   DOOR_TIMEOUT
 } from '../Constants'
-import { isTop, isBottom, timeout } from '../Utils'
+import { timeout } from '../Utils'
 
 class KeyModel {
   constructor (floor) {
