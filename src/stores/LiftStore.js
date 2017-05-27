@@ -51,7 +51,6 @@ class LiftStore {
       switch (this.currDirection) {
         case DirectionTypes.UP: {
           if (!isForce) {
-            debugger
             await timeout(FLOOR_CHANGE_TIME)
           }
           runInAction('Lift Up a Floor', () => this.currFloor++)

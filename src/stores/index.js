@@ -1,14 +1,14 @@
 import { observable, action, computed, reaction, autorun, runInAction } from 'mobx'
 import FloorsStore from './FloorsStore'
 import LiftStore from './LiftStore'
-import { DirectionTypes, DoorStates } from '../Constants'
+import { DirectionTypes, DoorStates, TOP_FLOOR, BOTTOM_FLOOR } from '../Constants'
 import { getOpposite } from '../Utils'
 
 class SystemStore {
   @action async liftArrive () {
     const floor = this.liftState.currFloor
     const direction = this.liftState.currDirection
-    // this.floorsState.getFloorModel(floor).resolve(direction)
+    this.floorsState.getFloorModel(floor).resolve(direction)
     this.liftState.resolve()
     await this.liftState.openDoor()
   }
@@ -20,17 +20,21 @@ class SystemStore {
         if (floor) {
           this.liftArrive()
         }
-      }
+      },
+      { name: 'Lift Arrived on In Carr Call' }
     )
+
     reaction(
       // react to the same direction
       () => ({
-        curr: this.currFloorState,
+        next: this.nextFloorState,
         direction: this.liftState.currDirection
       }),
-      ({ curr, direction }) => {
-        if (curr.floor && curr[direction]) {
-          this.liftArrive()
+      async ({ next, direction }) => {
+        debugger
+        if (next.floor && next[direction]) {
+          // await this.liftArrive()
+          debugger
         }
         // if (floor && direction) {
         //   await this.liftArrive(floor, direction, curr)
@@ -39,7 +43,7 @@ class SystemStore {
         //   await this.liftArrive(floor, direction, true)
         // }
       },
-      { name: 'Lift Arrived on Demand' }
+      { name: 'Lift Arrived on Floor Call' }
     )
     // reaction(
     //   () => ({
@@ -189,13 +193,23 @@ class SystemStore {
       return false
     }
   }
-  @computed get currFloorState () {
+  @computed get nextFloorState () {
     let flag = false
     let up = false
     let down = false
-    const curr = this.floorsState.getFloorModel(this.liftState.currFloor).floorState
-    Object.keys(curr).forEach(key => {
-      if (curr[key]) {
+    let next
+    if (this.liftState.currDirection === DirectionTypes.UP) {
+      next = this.liftState.currFloor + 1
+    } else if (this.liftState.currDirection === DirectionTypes.DOWN) {
+      next = this.liftState.currFloor - 1
+    }
+    if (next < BOTTOM_FLOOR || next > TOP_FLOOR || !next) {
+      return {}
+    }
+
+    const nextFloor = this.floorsState.getFloorModel(next).floorState
+    Object.keys(nextFloor).forEach(key => {
+      if (nextFloor[key]) {
         if (key === DirectionTypes.UP) {
           up = true
         }
@@ -206,7 +220,7 @@ class SystemStore {
       }
     })
     return {
-      floor: flag && this.liftState.currFloor,
+      floor: flag && next,
       [DirectionTypes.UP]: up,
       [DirectionTypes.DOWN]: down
     }
