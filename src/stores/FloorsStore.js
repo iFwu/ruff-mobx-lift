@@ -32,13 +32,21 @@ class FloorModel {
   press = (direction) => {
     this.floorState[direction] = true
   }
-  @action resolve = (direction, isLastToStop) => {
+  @action('Floor Call Resolving')
+  resolve = (direction) => {
     if (direction in this.floorState) {
       this.floorState[direction] = false
+    } else {
+      if (getOpposite(direction) in this.floorState) {
+        this.floorState[getOpposite(direction)] = false
+      }
+      if (getOpposite(getOpposite(direction)) in this.floorState) {
+        this.floorState[getOpposite(getOpposite(direction))] = false
+      }
     }
-    if (isLastToStop && getOpposite(direction) in this.floorState) {
-      this.floorState[getOpposite(direction)] = false
-    }
+    // if (isLastToStop) {
+
+    // }
   }
 }
 

@@ -11,7 +11,7 @@ class FloorView extends Component {
         floorState, floor, press, reset
       },
       liftState: {
-        goNextFloor, goDirection, doorState
+        goNextFloor, currDirection, doorState, direct
       },
       floorsToStop
     } = this.props.store
@@ -77,7 +77,7 @@ class FloorView extends Component {
           button {
             height: 20px;
             width: 30px;
-            font-size: 14px;
+            font-size: 11px;
             vertical-align: middle;
           }
           button[type=reset] {
@@ -107,9 +107,9 @@ class FloorView extends Component {
           <span className='queue'>{floorsToStop.join(' | ')}</span>
           <h4>Current Direction:</h4>
           <i>{
-            goDirection === UP
+            currDirection === UP
             ? '⬆️'
-            : (goDirection === DOWN
+            : (currDirection === DOWN
               ? '⬇️'
               : '🛑')
           }</i>
@@ -117,6 +117,8 @@ class FloorView extends Component {
         <section>
           <button onClick={() => goNextFloor(true)}> ⇥ </button>
           <button type='reset' onClick={reset}> ↻ </button>
+          <button onClick={() => direct(UP)}> ⇧ </button>
+          <button onClick={() => direct(DOWN)}> ⇩ </button>
         </section>
       </div>
     )

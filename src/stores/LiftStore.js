@@ -19,10 +19,7 @@ class KeyModel {
   @action('In Car Floor Called') press = () => {
     this.isOn = true
   }
-  @action('In Car Floor Call Canceled') cancel = () => {
-    this.isOn = false
-  }
-  @action('In Car Floor Call Resolved') resolve = () => {
+  @action('In Car Floor Call Canceling') cancel = () => {
     this.isOn = false
   }
 }
@@ -43,52 +40,62 @@ class LiftStore {
   }
   @observable keypadState = []
   @observable currFloor = 1
-  @observable goDirection
+  @observable currDirection
 
   getKeyModel = (floor) => {
     return this.keypadState[floor - BOTTOM_FLOOR]
   }
 
   @action goNextFloor = async (isForce = false) => {
-    switch (this.goDirection) {
-      case DirectionTypes.UP: {
-        if (!isForce) {
-          await timeout(FLOOR_CHANGE_TIME)
+    if (this.doorState === DoorStates.CLOSED) {
+      switch (this.currDirection) {
+        case DirectionTypes.UP: {
+          if (!isForce) {
+            await timeout(FLOOR_CHANGE_TIME)
+          }
+          runInAction('Lift Up a Floor', () => this.currFloor++)
+          break
         }
-        runInAction('Lift Up a Floor', () => this.currFloor++)
-        break
-      }
-      case DirectionTypes.DOWN: {
-        if (!isForce) {
-          await timeout(FLOOR_CHANGE_TIME)
+        case DirectionTypes.DOWN: {
+          if (!isForce) {
+            await timeout(FLOOR_CHANGE_TIME)
+          }
+          runInAction('Lift Down a Floor', () => this.currFloor--)
+          break
         }
-        runInAction('Lift Down a Floor', () => this.currFloor--)
-        break
+        default: {
+          throw new Error('No Direction. Can Cause Infinite loop')
+        }
       }
-      default: {
-        throw new Error('No Direction. Can Cause Infinite loop')
-      }
+    } else {
+      return new Promise((_, reject) => reject('Door Not Closed, Unable to Go To Next'))
     }
   }
-  @action direct (direction) {
+  @action direct = (direction) => {
     if (direction !== DirectionTypes.UP && direction !== DirectionTypes.DOWN) {
-      throw new Error('Not a Valid Direction')
-    } else if (this.doorState === DoorStates.CLOSED) {
-      this.goDirection = direction
-    } else {
       //eslint-disable-next-line no-console
-      console.info('Door Not Closed, Ignore Direction Change')
+      throw new Error('Not a Valid Direction')
+    } else if (this.doorState !== DoorStates.CLOSED) {
+      //eslint-disable-next-line no-console
+      throw new Error('Wait Door Close to Direct')
+    } else {
+      this.currDirection = direction
     }
   }
   @action clearDirection () {
-    this.goDirection = null
+    this.currDirection = null
   }
 
   @observable doorState = DoorStates.CLOSED
 
-  doorTimer
+  openingTimer
+  closingTimer
   @action openDoor = async () => {
-    if (this.doorState === DoorStates.CLOSED) {
+    if (this.doorState === DoorStates.CLOSED || this.closingTimer) {
+      if (this.closingTimer) {
+        clearTimeout(this.closingTimer)
+        this.closingTimer = null
+      }
       this.doorState = DoorStates.OPENING
       await timeout(DOOR_TOGGLE_TIME)
       runInAction('Door Opened', () => {
@@ -96,26 +103,35 @@ class LiftStore {
       })
     }
     await timeout(DOOR_TIMEOUT, timer => {
-      if (this.doorTimer) {
-        clearTimeout(this.doorTimer)
+      if (this.openingTimer) {
+        clearTimeout(this.openingTimer)
       }
-      this.doorTimer = timer
+      this.openingTimer = timer
     })
-    this.doorTimer = null
+    this.openingTimer = null
     this.closeDoor(true)
   }
   @action closeDoor = (isAuto = false) => {
     if (this.doorState === DoorStates.OPEN) {
       this.doorState = DoorStates.CLOSING
-      if (this.doorTimer) {
-        clearTimeout(this.doorTimer)
+      if (this.openingTimer) {
+        clearTimeout(this.openingTimer)
       }
-      timeout(DOOR_TOGGLE_TIME).then(() => {
+      timeout(DOOR_TOGGLE_TIME, timer => {
+        if (!this.closingTimer) {
+          this.closingTimer = timer
+        }
+      }).then(() => {
         runInAction(isAuto ? 'Door Auto Closed' : 'Door Closed', () => {
+          this.closingTimer = null
           this.doorState = DoorStates.CLOSED
         })
       })
     }
+  }
+  @action('In Car Floor Call Resolving') resolve = async () => {
+    this.getKeyModel(this.currFloor).isOn = false
+    await this.openDoor()
   }
 }
 

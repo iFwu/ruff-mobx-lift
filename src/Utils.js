@@ -22,7 +22,7 @@ export function getOpposite (direction) {
     case DirectionTypes.DOWN:
       return DirectionTypes.UP
     default:
-      return DirectionTypes.UP
+      throw new Error('Not a Valid Direction')
   }
 }
 
