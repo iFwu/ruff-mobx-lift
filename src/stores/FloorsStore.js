@@ -34,14 +34,16 @@ class FloorModel {
   }
   @action('Floor Call Resolving')
   resolve = (direction) => {
-    if (direction in this.floorState) {
-      this.floorState[direction] = false
-    } else {
-      if (getOpposite(direction) in this.floorState) {
-        this.floorState[getOpposite(direction)] = false
-      }
-      if (getOpposite(getOpposite(direction)) in this.floorState) {
-        this.floorState[getOpposite(getOpposite(direction))] = false
+    if (direction) {
+      if (direction in this.floorState) {
+        this.floorState[direction] = false
+      } else {
+        if (getOpposite(direction) in this.floorState) {
+          this.floorState[getOpposite(direction)] = false
+        }
+        if (getOpposite(getOpposite(direction)) in this.floorState) {
+          this.floorState[getOpposite(getOpposite(direction))] = false
+        }
       }
     }
     // if (isLastToStop) {
@@ -73,7 +75,7 @@ class FloorsStore {
       [DOWN]: this.floors
         .filter(floorModel =>
           floorModel.floorState[DOWN] === true
-        ).map(t => t.floor),
+        ).map(t => t.floor).reverse(),
     }
   }
 }
