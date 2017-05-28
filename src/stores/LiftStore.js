@@ -58,7 +58,11 @@ class LiftStore {
               }
             })
           }
-          runInAction('Lift Up a Floor', () => this.currFloor++)
+          if (this.doorState === DoorStates.CLOSED) {
+            runInAction('Lift Up a Floor', () => this.currFloor++)
+          } else {
+            throw new Error('Door state changed while running.')
+          }
           break
         }
         case DirectionTypes.DOWN: {
@@ -69,7 +73,11 @@ class LiftStore {
               }
             })
           }
-          runInAction('Lift Down a Floor', () => this.currFloor--)
+          if (this.doorState === DoorStates.CLOSED) {
+            runInAction('Lift Up a Floor', () => this.currFloor--)
+          } else {
+            throw new Error('Door state changed while running.')
+          }
           break
         }
         default: {

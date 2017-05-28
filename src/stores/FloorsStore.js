@@ -46,13 +46,9 @@ class FloorModel {
         }
       }
     }
-    // if (isLastToStop) {
-
-    // }
   }
 }
 
-// const { UP, DOWN } = Direction
 class FloorsStore {
   liftId
   @observable floors = []

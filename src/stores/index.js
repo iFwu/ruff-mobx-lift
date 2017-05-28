@@ -1,4 +1,4 @@
-import { observable, action, computed, reaction, runInAction } from 'mobx'
+import { observable, action, computed, reaction } from 'mobx'
 import FloorsStore from './FloorsStore'
 import LiftStore from './LiftStore'
 import { DirectionTypes, DoorStates } from '../Constants'
@@ -54,40 +54,9 @@ class SystemStore {
         if (curr.floor && curr[direction]) {
           this.liftArrive()
         }
-        // if (floor && direction) {
-        //   await this.liftArrive(floor, direction, curr)
-        // } else if (!direction && floor && floor === curr.floor) {
-        //   // case this floor button
-        //   await this.liftArrive(floor, direction, true)
-        // }
       },
       { name: 'Lift Arrived on Floor Call' }
     )
-    // reaction(
-    //   () => ({
-    //     nextFloorsLen: this.floorsToStop.length,
-    //     keypadLen: this.liftState.keypadState.filter(key => key.isOn).map(key => key.floor).length,
-    //     upLen: this.floorsState.callQueue[DirectionTypes.UP].length,
-    //     downLen: this.floorsState.callQueue[DirectionTypes.DOWN].length,
-    //   }),
-    //   lens => {
-    //     const { nextFloorsLen, keypadLen, upLen, downLen } = lens
-    //     if (!nextFloorsLen) {
-    //       if (keypadLen || upLen || downLen) {
-    //         this.liftState.direct(getOpposite(this.liftState.currDirection))
-    //       } else {
-    //         this.liftState.clearDirection()
-    //       }
-    //     } else {
-    //       const difference = this.liftState.currFloor - this.floorsToStop[0]
-    //       if (difference === 0) {
-    //         return
-    //       }
-    //       this.liftState.direct(difference > 0 ? DirectionTypes.DOWN : DirectionTypes.UP)
-    //     }
-    //   },
-    //   { name: 'Lift Directing' }
-    // )
     reaction(
       // react to the opposite direction
       () => ({
