@@ -8,7 +8,7 @@ import {
   DOOR_TOGGLE_TIME,
   DOOR_TIMEOUT
 } from '../Constants'
-import { timeout } from '../Utils'
+import { timeout, clearAndReject } from '../Utils'
 
 class KeyModel {
   constructor (floor) {
@@ -46,19 +46,28 @@ class LiftStore {
     return this.keypadState[floor - BOTTOM_FLOOR]
   }
 
+  @observable goTimer = []
   @action goNextFloor = async (isForce = false) => {
     if (this.doorState === DoorStates.CLOSED) {
       switch (this.currDirection) {
         case DirectionTypes.UP: {
           if (!isForce) {
-            await timeout(FLOOR_CHANGE_TIME)
+            await timeout(FLOOR_CHANGE_TIME, (...timer) => {
+              if (!(this.goTimer.length)) {
+                this.goTimer = timer
+              }
+            })
           }
           runInAction('Lift Up a Floor', () => this.currFloor++)
           break
         }
         case DirectionTypes.DOWN: {
           if (!isForce) {
-            await timeout(FLOOR_CHANGE_TIME)
+            await timeout(FLOOR_CHANGE_TIME, (...timer) => {
+              if (!(this.goTimer.length)) {
+                this.goTimer = timer
+              }
+            })
           }
           runInAction('Lift Down a Floor', () => this.currFloor--)
           break
@@ -68,7 +77,10 @@ class LiftStore {
         }
       }
     } else {
-      return new Promise((_, reject) => reject('Door Not Closed, Unable to Go To Next'))
+      throw new Error('Door Not Closed, Unable to Go To Next')
+    }
+    if (this.goTimer.length) {
+      this.goTimer.clear()
     }
   }
   @action direct = (direction) => {
@@ -88,50 +100,50 @@ class LiftStore {
 
   @observable doorState = DoorStates.CLOSED
 
-  openingTimer
-  closingTimer
+  @observable doorWaitingTimer = []
+  @observable closingTimer = []
   @action openDoor = async () => {
-    if (this.doorState === DoorStates.CLOSED || this.closingTimer) {
-      if (this.closingTimer) {
-        clearTimeout(this.closingTimer)
-        this.closingTimer = null
-      }
+    if (this.doorState === DoorStates.CLOSED || this.closingTimer.length) {
       this.doorState = DoorStates.OPENING
+      if (this.closingTimer.length) {
+        clearAndReject(this.closingTimer)
+      }
       await timeout(DOOR_TOGGLE_TIME)
       runInAction('Door Opened', () => {
         this.doorState = DoorStates.OPEN
       })
     }
-    await timeout(DOOR_TIMEOUT, timer => {
-      if (this.openingTimer) {
-        clearTimeout(this.openingTimer)
-      }
-      this.openingTimer = timer
-    })
-    this.openingTimer = null
-    this.closeDoor(true)
+    if (this.doorWaitingTimer.length) {
+      clearAndReject(this.doorWaitingTimer)
+    }
+    timeout(DOOR_TIMEOUT, (...timer) => {
+      this.doorWaitingTimer = timer
+    }).then(() => {
+      this.doorWaitingTimer.clear()
+      this.closeDoor(true)
+    }).catch(() => {})
+    return Promise.resolve()
   }
   @action closeDoor = (isAuto = false) => {
-    if (this.doorState === DoorStates.OPEN) {
-      this.doorState = DoorStates.CLOSING
-      if (this.openingTimer) {
-        clearTimeout(this.openingTimer)
+    // not accept close when opening
+    if (this.doorState === DoorStates.OPEN && !(this.closingTimer.length)) {
+      //in case manually close
+      if (this.doorWaitingTimer.length) {
+        clearAndReject(this.doorWaitingTimer)
       }
-      timeout(DOOR_TOGGLE_TIME, timer => {
-        if (!this.closingTimer) {
-          this.closingTimer = timer
-        }
+      this.doorState = DoorStates.CLOSING
+      timeout(DOOR_TOGGLE_TIME, (...timer) => {
+        this.closingTimer = timer
       }).then(() => {
         runInAction(isAuto ? 'Door Auto Closed' : 'Door Closed', () => {
-          this.closingTimer = null
+          this.closingTimer.clear()
           this.doorState = DoorStates.CLOSED
         })
-      })
+      }).catch(() => {})
     }
   }
   @action('In Car Floor Call Resolving') resolve = async () => {
     this.getKeyModel(this.currFloor).isOn = false
-    await this.openDoor()
   }
 }
 

@@ -4,8 +4,8 @@ export function timeout (ms, cancelFn = () => {}) {
   if (typeof ms !== 'number') {
     throw new Error('Not A Valid Time')
   }
-  return new Promise(resolve => {
-    cancelFn(setTimeout(resolve, ms))
+  return new Promise((resolve, reject) => {
+    cancelFn(setTimeout(resolve, ms), reject)
   })
 }
 
@@ -26,3 +26,8 @@ export function getOpposite (direction) {
   }
 }
 
+export const clearAndReject = (timer) => {
+  clearTimeout(timer[0])
+  timer[1]()
+  timer.clear()
+}

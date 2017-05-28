@@ -1,8 +1,8 @@
-import { observable, action, computed, reaction, autorun, runInAction } from 'mobx'
+import { observable, action, computed, reaction, runInAction } from 'mobx'
 import FloorsStore from './FloorsStore'
 import LiftStore from './LiftStore'
-import { DirectionTypes, DoorStates, TOP_FLOOR, BOTTOM_FLOOR } from '../Constants'
-import { getOpposite } from '../Utils'
+import { DirectionTypes, DoorStates } from '../Constants'
+import { getOpposite, clearAndReject } from '../Utils'
 
 class SystemStore {
   @action async liftArrive () {
@@ -16,9 +16,12 @@ class SystemStore {
     this.LIFT_ID = liftId
     reaction(
       () => this.stopping,
-      floor => {
+      async floor => {
         if (floor) {
-          this.liftArrive()
+          await this.liftArrive()
+          if (!this.floorsToStop.length) {
+            this.liftState.clearDirection()
+          }
         }
       },
       { name: 'Lift Arrived on In Carr Call' }
@@ -27,14 +30,15 @@ class SystemStore {
     reaction(
       // react to the same direction
       () => ({
-        next: this.nextFloorState,
+        curr: this.currFloorState,
         direction: this.liftState.currDirection
       }),
-      async ({ next, direction }) => {
-        debugger
-        if (next.floor && next[direction]) {
-          // await this.liftArrive()
-          debugger
+      async ({ curr, direction }) => {
+        if (curr.floor && curr[direction]) {
+          await this.liftArrive()
+          if (!this.floorsToStop.length) {
+            this.liftState.clearDirection()
+          }
         }
         // if (floor && direction) {
         //   await this.liftArrive(floor, direction, curr)
@@ -74,20 +78,25 @@ class SystemStore {
       // react to the opposite direction
       () => ({
         nextFloorsLen: this.floorsToStop.length,
-        keypadLen: this.liftState.keypadState.filter(key => key.isOn).map(key => key.floor).length,
-        upLen: this.floorsState.callQueue[DirectionTypes.UP].length,
-        downLen: this.floorsState.callQueue[DirectionTypes.DOWN].length,
+        callQueue: this.floorsState.callQueue,
         doorState: this.liftState.doorState,
+        inCarLen: this.liftState.keypadState.filter(key => key.isOn).map(key => key.floor).length,
       }),
       params => {
-        const { nextFloorsLen, keypadLen, upLen, downLen, doorState } = params
+        const { nextFloorsLen, callQueue, doorState, inCarLen } = params
         if (doorState === DoorStates.CLOSED) {
-          if (!nextFloorsLen) {
-
+          if (!nextFloorsLen && this.liftState.currDirection) {
+            if (inCarLen || callQueue[getOpposite(this.liftState.currDirection)].length) {
+              this.liftState.direct(getOpposite(this.liftState.currDirection))
+            } else if (!callQueue[this.liftState.currDirection].length) {
+              this.liftState.clearDirection()
+            }
           } else if (this.liftState.currFloor - this.floorsToStop[0]) {
             const difference = this.liftState.currFloor - this.floorsToStop[0]
             this.liftState.direct(difference > 0 ? DirectionTypes.DOWN : DirectionTypes.UP)
           }
+        } else if (!nextFloorsLen) {
+          // debugger
         }
       },
       { name: 'Lift Directing' }
@@ -105,18 +114,32 @@ class SystemStore {
     return this.floorsState.floors[this.displayFloor - 1]
   }
 
+  isRunning
   @action startAutoRun = () => {
-    autorun(async () => {
-      while (
-        this.liftState.currDirection
-        && this.floorsToStop.length
-        && this.liftState.doorState === DoorStates.CLOSED
-        ) {
-        //eslint-disable-next-line no-await-in-loop
-        await this.liftState.goNextFloor(false)
+    reaction(
+      () => ({
+        direction: this.liftState.currDirection,
+        floorsToStop: this.floorsToStop.length > 0,
+        doorState: this.liftState.doorState === DoorStates.CLOSED
+      }),
+      async () => {
+        if (!this.isRunning) {
+          let flag = false
+          while (this.liftState.currDirection && this.floorsToStop.length && this.liftState.doorState === DoorStates.CLOSED) {
+            this.isRunning = true
+            //eslint-disable-next-line no-await-in-loop
+            await this.liftState.goNextFloor(false)
+            flag = true
+          }
+          if (flag) {
+            if (this.liftState.goTimer) {
+              clearAndReject(this.liftState.goTimer)
+            }
+          }
+          this.isRunning = false
+        }
       }
-      this.liftState.clearDirection()
-    })
+    )
   }
 
   // next floor in current direction
@@ -150,8 +173,8 @@ class SystemStore {
     let floorsQueue
     // in case direction is undefined
     // get both directions
-    const drctCalls = this.floorsState.callQueue[direction || DirectionTypes.DOWN]
-    const opstCalls = this.floorsState.callQueue[direction ? getOpposite(direction) : DirectionTypes.UP]
+    const drctCalls = this.floorsState.callQueue[direction || DirectionTypes.DOWN].sort()
+    const opstCalls = this.floorsState.callQueue[direction ? getOpposite(direction) : DirectionTypes.UP].sort()
     if (drctCalls && drctCalls.filter(onDirection).length) {
       floorsQueue = drctCalls && drctCalls.filter(floor => onDirection(floor))
     } else if (opstCalls && opstCalls.filter(onDirection).length) {
@@ -193,23 +216,13 @@ class SystemStore {
       return false
     }
   }
-  @computed get nextFloorState () {
+  @computed get currFloorState () {
     let flag = false
     let up = false
     let down = false
-    let next
-    if (this.liftState.currDirection === DirectionTypes.UP) {
-      next = this.liftState.currFloor + 1
-    } else if (this.liftState.currDirection === DirectionTypes.DOWN) {
-      next = this.liftState.currFloor - 1
-    }
-    if (next < BOTTOM_FLOOR || next > TOP_FLOOR || !next) {
-      return {}
-    }
-
-    const nextFloor = this.floorsState.getFloorModel(next).floorState
-    Object.keys(nextFloor).forEach(key => {
-      if (nextFloor[key]) {
+    const curr = this.floorsState.getFloorModel(this.liftState.currFloor).floorState
+    Object.keys(curr).forEach(key => {
+      if (curr[key]) {
         if (key === DirectionTypes.UP) {
           up = true
         }
@@ -220,7 +233,7 @@ class SystemStore {
       }
     })
     return {
-      floor: flag && next,
+      floor: flag && this.liftState.currFloor,
       [DirectionTypes.UP]: up,
       [DirectionTypes.DOWN]: down
     }
