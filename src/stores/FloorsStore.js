@@ -71,11 +71,11 @@ class FloorsStore {
       [UP]: this.floors
         .filter(floorModel =>
           floorModel.floorState[UP] === true
-        ).map(t => t.floor),
+        ).map(t => t.floor).reverse(),
       [DOWN]: this.floors
         .filter(floorModel =>
           floorModel.floorState[DOWN] === true
-        ).map(t => t.floor).reverse(),
+        ).map(t => t.floor),
     }
   }
 }

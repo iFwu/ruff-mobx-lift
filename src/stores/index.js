@@ -5,23 +5,40 @@ import { DirectionTypes, DoorStates } from '../Constants'
 import { getOpposite, clearAndReject } from '../Utils'
 
 class SystemStore {
-  @action async liftArrive () {
+  @action liftArrive () {
     const floor = this.liftState.currFloor
     const direction = this.liftState.currDirection
+    const curr = this.currFloorState
+    const floorsToStop = this.floorsToStop
+    const inCarOnDirectionLen = this.liftState.keypadState.filter(key => key.isOn).map(key => key.floor).filter(_floor => {
+      switch (direction) {
+        case DirectionTypes.UP:
+          return _floor >= this.liftState.currFloor
+        case DirectionTypes.DOWN:
+          return _floor <= this.liftState.currFloor
+        default: {
+          return true
+        }
+      }
+    }).length
     this.floorsState.getFloorModel(floor).resolve(direction)
     this.liftState.resolve()
-    await this.liftState.openDoor()
+    this.liftState.openDoor()
+    if (!(curr.floor || curr[direction]) && !inCarOnDirectionLen) {
+      this.liftState.clearDirection()
+    } else if (floor && curr[direction]) {
+      //
+    } else if (floorsToStop[floorsToStop.length - 1] === floor && curr[getOpposite(direction)]) {
+      this.liftState.currDirection = getOpposite(direction)
+    }
   }
   constructor (liftId) {
     this.LIFT_ID = liftId
     reaction(
       () => this.stopping,
-      async floor => {
+      floor => {
         if (floor) {
-          await this.liftArrive()
-          if (!this.floorsToStop.length) {
-            this.liftState.clearDirection()
-          }
+          this.liftArrive()
         }
       },
       { name: 'Lift Arrived on In Carr Call' }
@@ -33,12 +50,9 @@ class SystemStore {
         curr: this.currFloorState,
         direction: this.liftState.currDirection
       }),
-      async ({ curr, direction }) => {
+      ({ curr, direction }) => {
         if (curr.floor && curr[direction]) {
-          await this.liftArrive()
-          if (!this.floorsToStop.length) {
-            this.liftState.clearDirection()
-          }
+          this.liftArrive()
         }
         // if (floor && direction) {
         //   await this.liftArrive(floor, direction, curr)
@@ -85,18 +99,31 @@ class SystemStore {
       params => {
         const { nextFloorsLen, callQueue, doorState, inCarLen } = params
         if (doorState === DoorStates.CLOSED) {
-          if (!nextFloorsLen && this.liftState.currDirection) {
-            if (inCarLen || callQueue[getOpposite(this.liftState.currDirection)].length) {
-              this.liftState.direct(getOpposite(this.liftState.currDirection))
-            } else if (!callQueue[this.liftState.currDirection].length) {
-              this.liftState.clearDirection()
+          if (!nextFloorsLen) {
+            if (this.liftState.currDirection) {
+              if (inCarLen || callQueue[getOpposite(this.liftState.currDirection)].length) {
+                if (!callQueue[this.liftState.currDirection].length) {
+                  this.liftState.direct(getOpposite(this.liftState.currDirection))
+                }
+              } else if (!callQueue[this.liftState.currDirection].length) {
+                this.liftState.clearDirection()
+              } else {
+                const currQueue = callQueue[this.liftState.currDirection]
+                if (currQueue[currQueue.length - 1] !== this.liftState.currFloor) {
+                  this.liftState.direct(getOpposite(this.liftState.currDirection))
+                }
+              }
+            } else {
+              for (const direction in callQueue) {
+                if (callQueue[direction].indexOf(this.liftState.currFloor) > -1) {
+                  this.liftState.direct(direction)
+                }
+              }
             }
           } else if (this.liftState.currFloor - this.floorsToStop[0]) {
             const difference = this.liftState.currFloor - this.floorsToStop[0]
             this.liftState.direct(difference > 0 ? DirectionTypes.DOWN : DirectionTypes.UP)
           }
-        } else if (!nextFloorsLen) {
-          // debugger
         }
       },
       { name: 'Lift Directing' }
@@ -132,7 +159,7 @@ class SystemStore {
             flag = true
           }
           if (flag) {
-            if (this.liftState.goTimer) {
+            if (this.liftState.goTimer.length) {
               clearAndReject(this.liftState.goTimer)
             }
           }
