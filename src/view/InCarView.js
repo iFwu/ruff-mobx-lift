@@ -29,8 +29,13 @@ class FloorButton extends Component {
           span {
             position: absolute;
           }
-          .before {
+          .curr {
+            left: 12px;
+            top: -3px;
+          }
+          .next {
             left: 10px;
+            top: 7px;
           }
           .after {
             top: 0;
@@ -45,7 +50,9 @@ class FloorButton extends Component {
             width: 30px;
           }
         `}</style>
-        <span className='before'>{store.liftState.currFloor === btn.floor && '➠'}</span>
+
+        <span className='next'>{store.liftState.nextFloor === btn.floor && '⇢'}</span>
+        <span className='curr'>{store.liftState.currFloor === btn.floor && '➡'}</span>
         <button
           onClick={!btn.isOn && store.liftState.currFloor !== btn.floor && btn.press}
           onDoubleClick={btn.isOn && btn.cancel}

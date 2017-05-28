@@ -41,6 +41,7 @@ class LiftStore {
   @observable keypadState = []
   @observable currFloor = 1
   @observable currDirection
+  @observable nextFloor = 1
 
   getKeyModel = (floor) => {
     return this.keypadState[floor - BOTTOM_FLOOR]
@@ -49,40 +50,46 @@ class LiftStore {
   @observable goTimer = []
   @action goNextFloor = async (isForce = false) => {
     if (this.doorState === DoorStates.CLOSED) {
-      switch (this.currDirection) {
-        case DirectionTypes.UP: {
-          if (!isForce) {
-            await timeout(FLOOR_CHANGE_TIME, (...timer) => {
-              if (!(this.goTimer.length)) {
-                this.goTimer = timer
-              }
-            })
+      try {
+        switch (this.currDirection) {
+          case DirectionTypes.UP: {
+            this.nextFloor = this.currFloor + 1
+            if (!isForce) {
+              await timeout(FLOOR_CHANGE_TIME, (...timer) => {
+                if (!(this.goTimer.length)) {
+                  this.goTimer = timer
+                }
+              })
+            }
+            if (this.doorState === DoorStates.CLOSED) {
+              runInAction('Lift Up a Floor', () => this.currFloor++)
+            } else {
+              throw new Error('Door state changed while running.')
+            }
+            break
           }
-          if (this.doorState === DoorStates.CLOSED) {
-            runInAction('Lift Up a Floor', () => this.currFloor++)
-          } else {
-            throw new Error('Door state changed while running.')
+          case DirectionTypes.DOWN: {
+            this.nextFloor = this.currFloor - 1
+            if (!isForce) {
+              await timeout(FLOOR_CHANGE_TIME, (...timer) => {
+                if (!(this.goTimer.length)) {
+                  this.goTimer = timer
+                }
+              })
+            }
+            if (this.doorState === DoorStates.CLOSED) {
+              runInAction('Lift Up a Floor', () => this.currFloor--)
+            } else {
+              throw new Error('Door state changed while running.')
+            }
+            break
           }
-          break
+          default: {
+            throw new Error('No Direction. Can Cause Infinite loop')
+          }
         }
-        case DirectionTypes.DOWN: {
-          if (!isForce) {
-            await timeout(FLOOR_CHANGE_TIME, (...timer) => {
-              if (!(this.goTimer.length)) {
-                this.goTimer = timer
-              }
-            })
-          }
-          if (this.doorState === DoorStates.CLOSED) {
-            runInAction('Lift Up a Floor', () => this.currFloor--)
-          } else {
-            throw new Error('Door state changed while running.')
-          }
-          break
-        }
-        default: {
-          throw new Error('No Direction. Can Cause Infinite loop')
-        }
+      } catch (e) {
+        alert(e)
       }
     } else {
       throw new Error('Door Not Closed, Unable to Go To Next')

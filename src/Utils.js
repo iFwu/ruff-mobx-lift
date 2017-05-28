@@ -28,6 +28,6 @@ export function getOpposite (direction) {
 
 export const clearAndReject = (timer) => {
   clearTimeout(timer[0])
-  timer[1]()
+  timer[1]('Clear and Rejecting!')
   timer.clear()
 }
