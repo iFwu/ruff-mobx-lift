@@ -13,7 +13,7 @@ class SystemStore {
     const inCarOnDirectionLen = this.liftState.keypadState.filter(key => key.isOn).map(key => key.floor).filter(_floor => {
       switch (direction) {
         case DirectionTypes.UP:
-          return _floor > this.liftState.currFloor
+          return _floor - this.liftState.currFloor
         case DirectionTypes.DOWN:
           return _floor < this.liftState.currFloor
         default: {
@@ -189,10 +189,11 @@ class SystemStore {
     const sortOnDirection = (a, b) => {
       switch (direction) {
         case DirectionTypes.UP:
-          return a > b
+          return a - b
         case DirectionTypes.DOWN:
-          return a < b
+          return b - a
         default:
+          return 0
       }
     }
     const inCarQueue = this.liftState.keypadState.filter(key => key.isOn).map(key => key.floor).filter(floor => onDirection(floor)).sort(sortOnDirection)
