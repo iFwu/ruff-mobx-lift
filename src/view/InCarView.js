@@ -52,7 +52,7 @@ class FloorButton extends Component {
         `}</style>
 
         <span className='next'>{store.liftState.nextFloor === btn.floor && '⇢'}</span>
-        <span className='curr'>{store.liftState.currFloor === btn.floor && '➡'}</span>
+        <span className='curr'>{store.liftState.currFloor === btn.floor && '➔'}</span>
         <button
           onClick={!btn.isOn && store.liftState.currFloor !== btn.floor && btn.press}
           onDoubleClick={btn.isOn && btn.cancel}

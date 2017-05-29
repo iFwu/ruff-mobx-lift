@@ -16,7 +16,6 @@ class App extends Component {
         <div className='root'>
           <style jsx>{`
             .root {
-              padding: 30px;
               display: flex;
               max-width: 100vw;
               justify-content: space-between;

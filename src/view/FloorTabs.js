@@ -9,17 +9,21 @@ class FloorViewRadio extends Component {
     const { floor, changeFloorView } = this.props
     return (
       <label htmlFor={'floor-' + floor}>
+        {/*STYLE*/}
+        <style jsx>{`
+          input[type='radio'] {
+            display: none;
+          }
+          input:checked + span {
+            color: crimson;
+          }
+          span {
+            font-family: monospace;
+            font-size: 16px;
+          }
+        `}</style>
+        {/*STYLE_END*/}
         <li>
-          <style jsx>{`
-            input:checked + span {
-              color: crimson;
-            }
-            span {
-              font-family: monospace;
-              font-size: 16px;
-            }
-          `}</style>
-
           <input
             type='radio'
             name='outCarBtn'
@@ -29,7 +33,6 @@ class FloorViewRadio extends Component {
             defaultChecked={isBottom(floor)}
           />
           <span>F{floor}</span>
-
         </li>
       </label>
     )
